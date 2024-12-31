@@ -1,30 +1,63 @@
+// original work by Johan Karsson
+// https://codepen.io/DonKarlssonSan/pen/BRrVLa
 
-// require https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js
+var container;
+var camera, scene, renderer;
+var uniforms;
+var startTime;
 
-let inc = 0.05;
+init();
+animate();
 
-function setup() {
-  createCanvas(windowWidth, windowHeight);
-  noiseDetail(1);
+function init() {
+  container = document.getElementById('container');
+
+  startTime = Date.now();
+  camera = new THREE.Camera();
+  camera.position.z = 1;
+
+  scene = new THREE.Scene();
+
+  var geometry = new THREE.PlaneBufferGeometry(16, 9);
+
+  uniforms = {
+    iGlobalTime: { type: "f", value: 1.0 },
+    iResolution: { type: "v2", value: new THREE.Vector2() }
+  };
+
+  var material = new THREE.ShaderMaterial( {
+
+    uniforms: uniforms,
+    vertexShader: document.getElementById('vertexShader').textContent,
+    fragmentShader: document.getElementById('fragmentShader').textContent
+
+  } );
+
+  var mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+
+  renderer = new THREE.WebGLRenderer();
+  container.appendChild(renderer.domElement);
+
+  onWindowResize();
+
+  window.addEventListener('resize', onWindowResize, false);
 }
 
-function draw() {
-  translate(width / 2, height / 2);
-  rotate(0.01 * frameCount);
+function onWindowResize(event) {
+  uniforms.iResolution.value.x = window.innerWidth;
+  uniforms.iResolution.value.y = window.innerHeight;
 
-  img = createImage(250, 250);
-  img.loadPixels();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
 
-  var m = map(noise(frameCount * 0.004), 0, 1, 1.5, 2);
-  for (let y = 0; y < img.height; y++) {
-    for (let x = 0; x < img.width; x++) {
-      let r = map(x, 0, img.width, 50, 120);
-      let g = map(y, 0, img.height, 20, 140);
-      let c = color(r * m, g * m, 100 * m);
-      img.set(x, y, c);
-    }
-  }
-  img.updatePixels();
-  noSmooth();
-  image(img, -width, -width, width * 2, width * 2);
+function animate() {
+  requestAnimationFrame(animate);
+  render();
+}
+
+function render() {
+  var currentTime = Date.now();
+  uniforms.iGlobalTime.value = (currentTime - startTime) * 0.001;
+  renderer.render(scene, camera);
 }
